@@ -6,8 +6,8 @@ module MarkLogic
 
     def initialize(app_name, options = {})
       @app_name = app_name
-      @port = options[:port]
       self.connection = options[:connection]
+      @port = options[:port] || self.connection.port
       self.admin_connection = options[:admin_connection]
     end
 
@@ -46,7 +46,17 @@ module MarkLogic
       end
     end
 
+    def sync
+      create if stale?
+    end
+
+    def sync!
+      create
+    end
+
     def drop
+      logger.debug(%Q{Dropping Application: #{@app_name}})
+
       build_implicit_defs
 
       app_servers.each do |server_name, app_server|
@@ -195,7 +205,7 @@ module MarkLogic
           modules_db.application = self
           databases[modules_db_name] = modules_db
         end
-        forests[modules_db_name] = MarkLogic::Forest.new(db_name, nil, self.connection) unless forests.has_key?(modules_db_name)
+        forests[modules_db_name] = MarkLogic::Forest.new(modules_db_name, nil, self.connection) unless forests.has_key?(modules_db_name)
         forests[modules_db_name].database = databases[modules_db_name]
       end
 

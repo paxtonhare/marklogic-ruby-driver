@@ -6,13 +6,8 @@ module MarkLogic
         @boosting_query = boosting_query
       end
 
-      def to_json
-        {
-          "boost-query" => {
-            "matching-query" => @matching_query,
-             "boosting-query" => @boosting_query
-          }
-        }
+      def to_xqy
+        %Q{cts:boost-query(#{@matching_query.to_xqy},#{@boosting_query.to_xqy})}
       end
     end
   end

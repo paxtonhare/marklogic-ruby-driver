@@ -1,16 +1,13 @@
 module MarkLogic
   module Queries
-    class DocumentQuery< BaseQuery
-      def initialize(document_uri)
-        @document_uri = document_uri
+    class DocumentQuery < BaseQuery
+      def initialize(uris)
+        @uris = uris
       end
 
-      def to_json
-        {
-          "document-query" => {
-            "uri" => document_uri
-          }
-        }
+      def to_xqy
+        uris = query_value(@uris)
+        %Q{cts:document-query((#{uris}))}
       end
     end
   end

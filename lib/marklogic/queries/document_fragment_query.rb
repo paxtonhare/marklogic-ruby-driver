@@ -1,18 +1,12 @@
 module MarkLogic
   module Queries
-    class DocumentFragmentQuery< BaseQuery
+    class DocumentFragmentQuery < BaseQuery
       def initialize(query)
         @query = query
       end
 
-      def to_json
-        json = {
-          "document-fragment-query" => { }
-        }
-
-        add_sub_query(json["document-fragment-query"], @query)
-
-        json
+      def to_xqy
+        %Q{cts:document-fragment-query(#{@query.to_xqy})}
       end
     end
   end

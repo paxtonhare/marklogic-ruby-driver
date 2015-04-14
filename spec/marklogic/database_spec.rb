@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe MarkLogic::Database, :working => true do
+describe MarkLogic::Database do
 
   describe "instance" do
     let(:d) do
@@ -69,6 +69,37 @@ describe MarkLogic::Database, :working => true do
       d.add_range_element_index("junk")
 
       expect(d).to_not be_stale
+    end
+  end
+
+  describe "#collections" do
+    let(:d) do
+      MarkLogic::Database.new("marklogic-gem-test", CONNECTION)
+    end
+
+    before do
+      # d.drop if d.exists?
+      d.create
+    end
+
+    after do
+      d.drop
+    end
+
+    it "should return empty array when no collections are present" do
+      d.collections.each do |collection|
+        d.collection(collection).drop
+      end
+      expect(d.collections.count).to eq(0)
+    end
+
+    it "should return collections" do
+      collection = d.collection("my-test")
+      collection.save({ name: "testing" })
+      collection = d.collection("my-test2")
+      collection.save({ name: "testing2" })
+
+      expect(d.collections.count).to eq(2)
     end
   end
 

@@ -1,19 +1,24 @@
 require 'spec_helper'
 
-describe MarkLogic::Application, :working => true do
+describe MarkLogic::Application do
 
   before do
-    @a = MarkLogic::Application.new("marklogic-gem-application-test", :port => PORT)
-    @content_db = MarkLogic::Database.new("marklogic-gem-application-test-content")
-    @content_forest = MarkLogic::Forest.new("marklogic-gem-application-test-content")
-    @modules_db = MarkLogic::Database.new("marklogic-gem-application-test-modules")
-    @modules_forest = MarkLogic::Database.new("marklogic-gem-application-test-modules")
-    @app_server = MarkLogic::AppServer.new("marklogic-gem-application-test", PORT, "http", "Default")
+    @a = MarkLogic::Application.new("marklogic-gem-application-test2", :port => PORT + 1)
+    @content_db = MarkLogic::Database.new("marklogic-gem-application-test2-content")
+    @content_forest = MarkLogic::Forest.new("marklogic-gem-application-test2-content")
+    @modules_db = MarkLogic::Database.new("marklogic-gem-application-test2-modules")
+    @modules_forest = MarkLogic::Database.new("marklogic-gem-application-test2-modules")
+    @app_server = MarkLogic::AppServer.new("marklogic-gem-application-test2", PORT + 1, "http", "Default")
   end
+
+  after do
+    @a.drop
+  end
+
 
   describe "new" do
     it "should create an instance" do
-      expect(@a.app_name).to eq("marklogic-gem-application-test")
+      expect(@a.app_name).to eq("marklogic-gem-application-test2")
       expect(@a.databases.length).to eq(0)
     end
   end
@@ -23,7 +28,7 @@ describe MarkLogic::Application, :working => true do
       @a.drop if @a.exists?
       expect(@a).to_not be_exists
       @a.create
-      expect(@a.exists?).to be true#_exists
+      expect(@a).to be_exists
       @a.drop
       expect(@a).to_not be_exists
     end

@@ -43,18 +43,4 @@ module MarkLogic
 
     alias to_str to_s
   end
-
-  # class BSON::ObjectId
-  #   alias_method :original_to_json, :to_json
-
-  #   def as_json(options=nil)
-  #     to_s
-  #   end
-
-  #   def to_json(options = nil)
-  #     as_json.to_json
-  #   end
-
-  #   alias to_str to_s
-  # end
 end

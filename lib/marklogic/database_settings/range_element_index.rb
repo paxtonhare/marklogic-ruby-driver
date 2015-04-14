@@ -51,6 +51,12 @@ module MarkLogic
         }
       end
 
+      def to_ref
+        options = [%Q{"type=#{@scalar_type}"}]
+        options << %Q{"collation=#{@collation}"} if @scalar_type == "string"
+        %Q{cts:json-property-reference("#{@localname}", (#{options.join(',')}))}
+      end
+
       def self.from_json(json)
         index = allocate
         index.from_json(json)

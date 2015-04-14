@@ -5,30 +5,39 @@ module MarkLogic
         @name = name.to_s
         @value = value
         @value = value.to_s if value.is_a?(ObjectId)
-        @options = options
-        @options[:term_options] ||= "exact"
+        @options = options || {}
+        @weight = @options.delete(:weight) || 1.0
+        @options[:exact] = true if @options.length == 0
       end
 
-      def to_json
-        if @value.kind_of?(Array)
-          value_key = value_type(@value[0])
-        else
-          value_key = value_type(@value)
+      def options=(opts)
+        @options = opts
+      end
+
+      def options
+        opts = []
+        @options.each do |k, v|
+          dashed_key = k.to_s.gsub(/_/, '-')
+          case k.to_s
+          when "lang", "min_occurs", "max_occurs"
+            opts << %Q{"#{dashed_key}=#{v}"}
+          when /(case|diacritic|punctuation|whitespace)_sensitive/
+            opts << (v == true ? %Q{"#{$1}-sensitive"} : %Q{"#{$1}-insensitive"})
+          when "exact"
+            opts << %Q{"#{dashed_key}"}
+          when "stemmed", "wildcarded"
+            opts << (v == true ? %Q{"#{dashed_key}"} : %Q{"un#{dashed_key}"})
+          else
+            opts << %Q{"#{v}"}
+          end
         end
 
-        json = {
-          "value-query" => {
-            "json-property" => @name,
-             "text" => @value
-          }
-        }
+        opts
+      end
 
-        json["value-query"]["type"] = value_key if value_key != "text"
-        json["value-query"]["fragment-scope"] = @options[:fragment_scope] if @options[:fragment_scope]
-        json["value-query"]["term-option"] = @options[:term_options] if @options[:term_options]
-        json["value-query"]["weight"] = @options[:weight] if @options[:weight]
-
-        json
+      def to_xqy
+        value = query_value(@value)
+        %Q{cts:json-property-value-query("#{@name}",(#{value}),(#{options.join(',')}),#{@weight})}
       end
     end
   end

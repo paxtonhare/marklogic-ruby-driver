@@ -1,5 +1,6 @@
 require 'active_support'
 require 'active_support/core_ext/object'
+require 'active_support/core_ext/string/inflections'
 require "marklogic/version"
 require "marklogic/consts"
 require 'marklogic/queries'

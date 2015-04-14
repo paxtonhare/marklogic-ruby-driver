@@ -1,6 +1,5 @@
 module MarkLogic
   module DatabaseSettings
-
     autoload :Index, 'marklogic/database_settings/index'
     autoload :ElementWordLexicon, 'marklogic/database_settings/element_word_lexicon'
     autoload :GeospatialElementChildIndex, 'marklogic/database_settings/geospatial_element_child_index'

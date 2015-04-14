@@ -7,17 +7,8 @@ module MarkLogic
         @options = options
       end
 
-      def to_json
-        json = {
-          "container-query" => {
-            "json-property" => @name
-          }
-        }
-
-        add_sub_query(json["container-query"], @query)
-
-        json["container-query"]["fragment-scope"] = @options[:fragment_scope] if @options[:fragment_scope]
-        json
+      def to_xqy
+        %Q{cts:json-property-scope-query("#{@name}",#{@query.to_xqy})}
       end
     end
   end

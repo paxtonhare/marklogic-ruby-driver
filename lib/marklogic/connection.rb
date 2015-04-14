@@ -61,7 +61,7 @@ module MarkLogic
   class Connection
     include MarkLogic::Loggable
 
-    attr_accessor :admin, :manage, :app_services, :username, :password, :host, :port
+    attr_accessor :admin, :manage, :app_services, :username, :password, :host, :port, :request_retries
 
     def self.configure(options = {})
       @@__host_name = options[:host] if options[:host]
@@ -117,6 +117,7 @@ module MarkLogic
       @port = port
       @username = username || self.class.default_user
       @password = password || self.class.default_password
+      @request_retries = options[:request_retries] || 3
       @http = Net::HTTP.new(host, port)
     end
 
@@ -125,7 +126,7 @@ module MarkLogic
         type.to_sym => query
       }
       params[:dbname] = options[:db] if options[:db]
-      post('/eval', params)
+      response = post('/eval', params)
         # :xquery => options[:query],
         # :locale => LOCALE,
         # :tzoffset => "-18000",
@@ -152,6 +153,12 @@ module MarkLogic
       request(url, 'post', headers, ::JSON.generate(params))
     end
 
+    def post_multipart(url, body = nil, headers = {}, boundary = "BOUNDARY")
+      headers['Content-Type'] = %Q{multipart/mixed; boundary=#{boundary}}
+      headers['Accept'] = %Q{application/json}
+      request(url, 'post', headers, body)
+    end
+
     def delete(url, headers = {}, body = nil)
       request(url, 'delete', headers, body)
     end
@@ -173,6 +180,7 @@ module MarkLogic
         rescue
         end
       end
+      logger.debug "Restart Complete"
     end
 
     def ==(other)
@@ -196,6 +204,12 @@ module MarkLogic
     def split_multipart(response)
       if response.read_body
         body = response.body
+
+        if body.length == 0
+          response.body = nil
+          return
+        end
+
         content_type = response['Content-Type']
         if (content_type and content_type.match(/multipart\/mixed.*/))
           boundary = $1 if content_type =~ /^.*boundary=(.*)$/
@@ -250,6 +264,9 @@ module MarkLogic
     end
 
     def request(url, verb = 'get', headers = {}, body = nil, params = nil)
+      tries ||= request_retries
+
+      logger.debug "Retry #{request_retries - tries} of #{request_retries} for:\n#{body}" unless (tries == request_retries)
       all_headers = {}
 
       # configure headers
@@ -280,10 +297,12 @@ module MarkLogic
         response = @http.request request
       end
 
-      # puts("#{response.code} : #{verb.upcase} => ://#{@host}:#{@port}#{url} :: #{body}")
+      # puts("#{response.code} : #{verb.upcase} => ://#{@host}:#{@port}#{url} :: #{body} #{params}")
 
       split_multipart(response)
       response
+    rescue Net::ReadTimeout => e
+      retry unless (tries -= 1).zero?
     end
   end
 end

@@ -8,6 +8,7 @@ module MarkLogic
     DEFAULT_PAGE_LENGTH = 25
 
     def initialize(collection, options = {})
+      @options = options || {}
       @query = options.delete(:query)
       @collection = collection
       @transformer = options.delete(:transformer)
@@ -15,30 +16,17 @@ module MarkLogic
       @fields = convert_fields_for_query(@fields) if @fields
       @connection = @collection.database.connection
       @limit = options.delete(:limit)
-      @options = options
       @cache = []
       @query_run = false
       @visited = 0
     end
 
     def count
-      params = {
-        :start => 1,
-        :pageLength => 1,
-        :view => 'none',
-        :format => 'json'
-      }
-
-      params[:collection] = collection.collection unless collection.nil?
-
-      url = "/v1/search?#{params.to_query}"
-      # puts "\nurl: #{url}\njson: #{to_json}\n"
-      response = @connection.post_json(url, to_json)
+      col_name = collection.nil? ? "" : %Q{"#{collection.collection}"}
+      query_to_run = %Q{xdmp:estimate(cts:search(fn:collection(#{col_name}), #{query.to_xqy}, ("unfiltered")))}
+      response = @connection.run_query(query_to_run, "xquery")
       raise Exception.new("Invalid response: #{response.code.to_i}: #{response.body}") if (response.code.to_i != 200)
-
-      # puts response.body
-      resp = JSON.parse(response.body)
-      resp['total'].to_i
+      response.body.to_i
     end
 
     def paged_results
@@ -135,7 +123,6 @@ module MarkLogic
     end
 
     def view
-      # @options[:view] ||
       "none"
     end
 
@@ -202,58 +189,50 @@ module MarkLogic
       end
     end
 
+    def sort_xqy
+      return %Q{cts:unordered()} unless has_sort?
+
+      sorters = @options[:sort] || @options[:order]
+      sorters = [sorters] unless sorters.instance_of?(Array)
+
+      sorters.map do |sorter|
+        name = sorter[0].to_s
+        direction = (sorter[1] and (sorter[1] == -1)) ? "descending" : "ascending"
+
+        unless @collection.database.has_range_index?(name)
+          raise MissingIndexError.new("Missing index on #{name}")
+        end
+
+        ref = @collection.database.range_index(name).to_ref
+
+        %Q{cts:index-order(#{ref}, "#{direction}")}
+      end.join(',')
+    end
+
     def refresh
       results = exec.body
-      results = [results] unless results.instance_of?(Array)
+      if results.nil?
+        results = []
+      else
+        results = [results] unless results.instance_of?(Array)
+      end
       @cache = results
     end
 
     def exec
-      params = {
-        :start => start,
-        :pageLength => page_length,
-        :view => view,
-        :format => format
-      }
-
-      params[:collection] = collection.collection unless collection.nil?
-
-      url = "/v1/search?#{params.to_query}"
-      json = to_json
-
-      # puts "\nurl: #{url}\njson: #{to_json}\n"
-      response = @connection.post_json(url, json, { 'Accept' => 'multipart/mixed' })
+      query = to_xqy
+      response = @connection.run_query(query, "xquery")
       raise Exception.new("Invalid response: #{response.code.to_i}: #{response.body}") if (response.code.to_i != 200)
 
       @query_run = true
       response
     end
 
-    def to_json
-      json = {
-        "search" => {
-          "options" => {
-            "search-option" => ["unfiltered", "score-zero"],
-            "return-results" => return_results,
-            "return-query" => return_query,
-            "return-metrics" => return_metrics,
-            "return-qtext" => return_qtext,
-            "debug" => debug
-          },
-          "qtext" => "",
-          "query" => {
-            "queries" => [
-              query.to_json
-            ]
-          }
-        }
-      }
-
-      if has_sort?
-        json["search"]["options"]["sort-order"] = sort
-      end
-
-      json
+    def to_xqy
+      start_index = start
+      end_index = start_index + page_length - 1
+      col_name = collection.nil? ? "" : %Q{"#{collection.collection}"}
+      %Q{(cts:search(fn:collection(#{col_name}), #{query.to_xqy}, ("unfiltered", "score-zero", #{sort_xqy})))[#{start_index} to #{end_index}]}
     end
   end
 end

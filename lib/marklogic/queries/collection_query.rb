@@ -1,18 +1,14 @@
 module MarkLogic
   module Queries
-    class CollectionQuery< BaseQuery
-      def initialize(collection_uri)
-        @collection_uri = collection_uri
+    class CollectionQuery < BaseQuery
+      def initialize(collection_uris)
+        @collection_uris = collection_uris
       end
 
-      def to_json
-        {
-          "collection-query" => {
-            "uri" => @collection_uri
-          }
-        }
+      def to_xqy
+        uris = query_value(@collection_uris)
+        %Q{cts:collection-query((#{uris}))}
       end
-
     end
   end
 end

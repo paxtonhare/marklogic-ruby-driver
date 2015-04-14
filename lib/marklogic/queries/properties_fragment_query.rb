@@ -5,13 +5,8 @@ module MarkLogic
         @query = query
       end
 
-      def to_json
-        json = {
-          "properties-fragment-query" => { }
-        }
-
-        add_sub_query(json["properties-fragment-query"], @query)
-        json
+      def to_xqy
+        %Q{cts:properties-fragment-query(#{@query.to_xqy})}
       end
     end
   end

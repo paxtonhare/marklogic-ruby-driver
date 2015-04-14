@@ -37,7 +37,7 @@ module MarkLogic
     end
 
     def exists?
-      manage_connection.head(%Q{/manage/v2/forests/#{forest_name}}).code.to_i  == 200
+      manage_connection.head(%Q{/manage/v2/forests/#{forest_name}}).code.to_i == 200
     end
 
     def drop

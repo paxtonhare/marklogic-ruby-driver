@@ -1,28 +1,66 @@
 module MarkLogic
   module Queries
-    class RangeQuery< BaseQuery
+    class RangeQuery < BaseQuery
+
+      attr_accessor :name, :range_type
+
       def initialize(name, operator, range_type, value, options = {})
         @name = name.to_s
         @operator = operator.to_s.upcase
         @range_type = range_type
         @value = value
-        @options = options
+        @options = options || {}
+        @weight = @options.delete(:weight) || 1.0
       end
 
-      def to_json
-        value_key = value_type(@value)
-        json = {
-          "range-query" => {
-            "type" => @range_type,
-            "json-property" => @name,
-             "value" => @value,
-             "range-operator" => @operator
-          }
-        }
+      def operator=(op)
+        @operator = op
+      end
 
-        json["range-query"]["fragment-scope"] = @options[:fragment_scope] if @options[:fragment_scope]
-        json["range-query"]["collation"] = @options[:collation] if @options[:collation]
-        json
+      def operator
+        case @operator
+          when "LT"
+            "<"
+          when "LE"
+            "<="
+          when "GT"
+            ">"
+          when "GE"
+            ">="
+          when "EQ"
+            "="
+          when "NE"
+            "!="
+          else
+            @operator
+        end
+      end
+
+      def options=(opts)
+        @options = opts
+      end
+
+      def options
+        opts = []
+        @options.each do |k, v|
+          case k.to_s
+          when "collation", "min_occurs", "max_occurs", "score_function", "slope_factor"
+            opts << %Q{"#{k.to_s.gsub(/_/, '-')}=#{v}"}
+          when "cached"
+            opts << (v == true ? %Q{"cached"} : %Q{"uncached"})
+          when "synonym"
+            opts << %Q{"#{k}"}
+          else
+            opts << %Q{"#{v}"}
+          end
+        end
+
+        opts
+      end
+
+      def to_xqy
+        value = query_value(@value, @range_type)
+        %Q{cts:json-property-range-query("#{@name}","#{operator}",(#{value}),(#{options.join(',')}),#{@weight})}
       end
     end
   end

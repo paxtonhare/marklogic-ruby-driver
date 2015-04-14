@@ -14,6 +14,11 @@ module MarkLogic
           }
         }
       end
+
+      def to_xqy
+        sub_queries = @queries.map { |q| q.to_xqy }.join(', ')
+        %Q{cts:or-query((#{sub_queries}))}
+      end
     end
   end
 end

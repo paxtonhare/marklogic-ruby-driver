@@ -1,11 +1,11 @@
 module MarkLogic
   module Queries
     class NearQuery< BaseQuery
-      def initialize(queries, distance = nil, distance_weight = nil, ordered = false)
-        @queries = args
+      def initialize(queries, distance = 10, distance_weight = 1.0, options = {})
+        @queries = queries
         @distance = distance
         @distance_weight = distance_weight
-        @ordered = ordered
+        @ordered = options.delete(:ordered)
       end
 
       def to_json
@@ -21,8 +21,10 @@ module MarkLogic
         json
       end
 
-      def xml_query
-        %Q{<near-query>#{@queries.each { |q| q.xml_query }}</near-query>}
+      def to_xqy
+        queries = @queries.map { |q| q.to_xqy }.join(',')
+        ordered = (@ordered == true ? %Q{"ordered"} : %Q{"unordered"}) if !@ordered.nil?
+        %Q{cts:near-query((#{queries}),#{@distance},(#{ordered}),#{@distance_weight})}
       end
     end
   end

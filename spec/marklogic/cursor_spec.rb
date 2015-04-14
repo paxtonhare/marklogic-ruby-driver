@@ -2,26 +2,12 @@ require 'spec_helper'
 
 describe MarkLogic::Cursor do
   before do
-    options = { :connection => CONNECTION, :port => PORT }
-    @application = MarkLogic::Application.new("marklogic-gem-application-test", options).tap do |app|
-      app.add_index(MarkLogic::DatabaseSettings::RangeElementIndex.new(:age, :type => 'int'))
-      app.add_index(MarkLogic::DatabaseSettings::RangeElementIndex.new(:weight, :type => 'int'))
-    end
-    @application.create unless @application.exists?
-    @application.create_indexes if @application.stale?
-
-    @database = @application.content_databases[0]
     @collection = @database.collection("stuff")
-
     @collection.drop
 
-    (1..101).each do |n|
-      @collection.save( {:_id => n, :name => "John#{n}", :age => n, :weight => n % 5, :stuff => "junk"} )
-    end
-  end
-
-  after do
-    @collection.drop
+    @collection.save((1..101).map do |n|
+      {:_id => n, :name => "John#{n}", :age => n, :weight => n % 5, :stuff => "junk"}
+    end)
   end
 
   describe "#sort" do

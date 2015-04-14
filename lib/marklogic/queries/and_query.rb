@@ -1,19 +1,13 @@
 module MarkLogic
   module Queries
-    class AndQuery< BaseQuery
+    class AndQuery < BaseQuery
       def initialize(*args)
         @queries = args.flat_map{ |i| i }
       end
 
-      def to_json
-        {
-          "and-query" => {
-            "queries" =>
-              @queries.map do |q|
-                q.to_json
-              end
-          }
-        }
+      def to_xqy
+        sub_queries = @queries.map { |q| q.to_xqy }.join(',')
+        %Q{cts:and-query((#{sub_queries}))}
       end
     end
   end

@@ -24,7 +24,8 @@ module MarkLogic
 
       @database_name = database_name
       @options = {
-        "database-name" => @database_name
+        "database-name" => @database_name,
+        "collection-lexicon" => true
       }
 
       reset_indexes
@@ -159,8 +160,6 @@ module MarkLogic
 
     def update
       url = %Q{/manage/v2/databases/#{database_name}/properties?format=json}
-      # puts "url => #{url}"
-      # puts JSON.generate(to_json)
       r = manage_connection.put(url, JSON.generate(to_json))
     end
 
@@ -200,7 +199,7 @@ module MarkLogic
     end
 
     def collections()
-      return []
+      return connection.run_query('cts:collections()', "xquery").body || []
     end
   end
 end
