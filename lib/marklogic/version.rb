@@ -1,3 +1,3 @@
-module Marklogic
-  VERSION = "0.0.4"
+module MarkLogic
+  VERSION = "0.0.5"
 end
