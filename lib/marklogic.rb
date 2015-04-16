@@ -7,7 +7,6 @@ require "marklogic/consts"
 require 'marklogic/queries'
 require 'marklogic/exceptions'
 require 'marklogic/object_id'
-require 'marklogic/multipart_parser'
 
 module MarkLogic
   autoload :Application, 'marklogic/application'
