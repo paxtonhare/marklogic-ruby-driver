@@ -14,13 +14,13 @@ end
 
 desc 'Builds and installs the gem'
 task :install => :build do
-  sh "gem install marklogic-#{MarkMapper::Version}"
+  sh "gem install marklogic-#{MarkLogic::Version}"
 end
 
 desc 'Tags version, pushes to remote, and pushes gem'
 task :release => :build do
   sh "git tag v#{MarkMapper::Version}"
   sh "git push origin master"
-  sh "git push origin v#{MarkMapper::Version}"
-  sh "gem push marklogic-#{MarkMapper::Version}.gem"
+  sh "git push origin v#{MarkLogic::Version}"
+  sh "gem push marklogic-#{MarkLogic::Version}.gem"
 end
