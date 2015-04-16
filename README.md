@@ -1,4 +1,4 @@
-# Marklogic
+# MarkLogic
 
 A MarkLogic connector for Ruby
 
