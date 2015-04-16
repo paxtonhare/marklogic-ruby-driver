@@ -19,5 +19,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ['lib']
   spec.has_rdoc        = 'yard'
 
-  spec.add_dependency 'activesupport',   '>= 4.2.0'
+  spec.add_runtime_dependency 'net-http-persistent', '~> 2.9', '>= 2.9.4'
+  spec.add_runtime_dependency 'oj', '~> 2.12', '>= 2.12.2'
+  spec.add_runtime_dependency 'activesupport', '~> 4.2', '>= 4.2.0'
 end

@@ -2,6 +2,7 @@ require 'net/http'
 require 'date'
 require 'json'
 require 'digest'
+require 'net/http/persistent'
 
 module Net
   module HTTPHeader
@@ -54,12 +55,25 @@ module Net
 
       @header['Authorization'] = ["Basic #{encoded}"]
     end
+
+    # diable header capitalization for a performance gain
+    def capitalize(name)
+      name
+    end
   end
 end
 
 module MarkLogic
   class Connection
     include MarkLogic::Loggable
+
+    NEWLINE_SPLITTER = Regexp.new("\r\n", Regexp::MULTILINE)
+    DOUBLE_NEWLINE_SPLITTER = Regexp.new("\r\n\r\n", Regexp::MULTILINE)
+    START_BOUNDARY_REGEX = Regexp.new("^[\r\n]+--[^-].+?[\r\n]+", Regexp::MULTILINE)
+    END_BOUNDARY_REGEX = Regexp.new("[\r\n]+--[^-]+--[\r\n]+$", Regexp::MULTILINE)
+    BOUNDARY_SPLITTER_REGEX = Regexp.new(%Q{[\r\n]+--[^-]+[\r\n]+}, Regexp::MULTILINE)
+    CONTENT_TYPE_REGEX = /Content-Type:\s+(.*)$/
+    PRIMITIVE_REGEX = /X-Primitive:\s+(.*)$/
 
     attr_accessor :admin, :manage, :app_services, :username, :password, :host, :port, :request_retries
 
@@ -118,15 +132,19 @@ module MarkLogic
       @username = username || self.class.default_user
       @password = password || self.class.default_password
       @request_retries = options[:request_retries] || 3
-      @http = Net::HTTP.new(host, port)
+      @http = Net::HTTP::Persistent.new 'marklogic'
     end
 
     def run_query(query, type = "javascript", options = {})
-      params = {
-        type.to_sym => query
+      # manually building the params yielded a performance improvement
+      params = %Q{#{type}=#{URI.encode_www_form_component(query)}}
+      params += %Q{&dbname=#{options[:db]}} if options[:db]
+
+      headers = {
+        'content-type' => 'application/x-www-form-urlencoded'
       }
-      params[:dbname] = options[:db] if options[:db]
-      response = post('/eval', params)
+      response = request('/eval', 'post', headers, params)
+
         # :xquery => options[:query],
         # :locale => LOCALE,
         # :tzoffset => "-18000",
@@ -164,14 +182,14 @@ module MarkLogic
     end
 
     def wait_for_restart(body)
-      json = JSON.parse(body)
+      json = Oj.load(body)
       ts_value = json["restart"]["last-startup"][0]["value"]
       timestamp = DateTime.iso8601(ts_value).to_time
       new_timestamp = timestamp
 
       code = nil
       logger.debug "Waiting for restart"
-      until code == 200 and new_timestamp > timestamp
+      until code == 200 && new_timestamp > timestamp
         begin
           rr = get(%Q{/admin/v1/timestamp})
           code = rr.code.to_i
@@ -202,65 +220,61 @@ module MarkLogic
     end
 
     def split_multipart(response)
-      if response.read_body
-        body = response.body
+      body = response.body
 
-        if body.length == 0
-          response.body = nil
-          return
-        end
-
-        content_type = response['Content-Type']
-        if (content_type and content_type.match(/multipart\/mixed.*/))
-          boundary = $1 if content_type =~ /^.*boundary=(.*)$/
-
-          body.sub!(Regexp.new("[\r\n]+--#{boundary}--[\r\n]+$", Regexp::MULTILINE), "")
-          body.sub!(Regexp.new("^[\r\n]+--#{boundary}.+?[\r\n]+", Regexp::MULTILINE), "")
-
-          values = []
-          body.split(Regexp.new(%Q{[\r\n]+--#{boundary}[\r\n]+}, Regexp::MULTILINE)).each do |item|
-            splits = item.split(/\r\n\r\n/m)
-            metas = splits[0]
-            raw_value = splits[1]
-
-            value_content_type = type = xpath = nil
-
-            metas.split(/\r\n/m).each do |meta|
-              if meta.match(/^Content-Type:.*/m)
-                value_content_type = $1 if meta =~ /Content-Type:\s+(.*)$/
-              elsif meta.match(/^X-Primitive:.*/)
-                type = $1 if meta =~ /X-Primitive:\s+(.*)$/
-              elsif meta.match(/^X-Path:.*/)
-                xpath = $1 if meta =~ /X-Path:\s+(.*)$/
-              end
-            end
-
-            if (value_content_type == "application/json") then
-              value = JSON.parse(raw_value)
-            else
-              case type
-              when "integer"
-                value = raw_value.to_i
-              when "boolean"
-                value = raw_value == "true"
-              when "decimal"
-                value = raw_value.to_f
-              else
-                value = raw_value
-              end
-            end
-            values.push(value)
-          end
-
-          if (values.length == 1)
-            values = values[0]
-          end
-          output = values
-        else
-          output = body
-        end
-        response.body = output
+      if body.nil? || body.length == 0
+        response.body = nil
+        return
       end
+
+      content_type = response['Content-Type']
+      if (content_type && content_type.match(/multipart\/mixed.*/))
+        boundary = $1 if content_type =~ /^.*boundary=(.*)$/
+
+        body.sub!(END_BOUNDARY_REGEX, "")
+        body.sub!(START_BOUNDARY_REGEX, "")
+
+        values = []
+        body.split(BOUNDARY_SPLITTER_REGEX).each do |item|
+          splits = item.split(DOUBLE_NEWLINE_SPLITTER)
+          metas = splits[0]
+          raw_value = splits[1]
+
+          value_content_type = type = nil
+
+          metas.split(NEWLINE_SPLITTER).each do |meta|
+            if meta =~ CONTENT_TYPE_REGEX
+              value_content_type = $1
+            elsif meta =~ PRIMITIVE_REGEX
+              type = $1
+            end
+          end
+
+          if (value_content_type == "application/json") then
+            value = Oj.load(raw_value)
+          else
+            case type
+            when "integer"
+              value = raw_value.to_i
+            when "boolean"
+              value = raw_value == "true"
+            when "decimal"
+              value = raw_value.to_f
+            else
+              value = raw_value
+            end
+          end
+          values.push(value)
+        end
+
+        if (values.length == 1)
+          values = values[0]
+        end
+        output = values
+      else
+        output = body
+      end
+      response.body = output
     end
 
     def request(url, verb = 'get', headers = {}, body = nil, params = nil)
@@ -281,12 +295,20 @@ module MarkLogic
         request.digest_auth(@username, @password, @auth)
       end
 
-      request.set_form_data(params) if (params)
-      request.body = body if (body)
+      if params
+        # query = URI.encode_www_form(params)
+        # query.gsub!(/&/, sep) if sep != '&'
+        # self.body = query
+        # request['content-type'] = 'application/x-www-form-urlencoded'
+        request.set_form_data(params) if (params)
+      elsif body
+        request.body = body if (body)
+      end
 
-      response = @http.request request
+      full_url = URI("http://#{@host}:#{@port}#{url}")
+      response = @http.request full_url, request
 
-      if (response.code.to_i == 401 and @username and @password)
+      if (response.code.to_i == 401 && @username && @password)
         auth_method = $1.downcase if response['www-authenticate'] =~ /^(\w+) (.*)/
         if (auth_method == "basic")
           request.basic_auth(@username, @password)
@@ -294,7 +316,7 @@ module MarkLogic
           @auth = request.create_digest_auth(@username, @password, response)
         end
 
-        response = @http.request request
+        response = @http.request full_url, request
       end
 
       # puts("#{response.code} : #{verb.upcase} => ://#{@host}:#{@port}#{url} :: #{body} #{params}")

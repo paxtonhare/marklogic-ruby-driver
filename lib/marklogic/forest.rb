@@ -13,6 +13,22 @@ module MarkLogic
       }
     end
 
+    def self.load(forest_name, host_name = nil, conn = nil)
+      db = Forest.new(forest_name, host_name, conn)
+      db.load
+      db
+    end
+
+    def load
+      resp = manage_connection.get(%Q{/manage/v2/forests/#{forest_name}/properties?format=json})
+      if resp.code.to_i == 200
+        options = Oj.load(resp.body)
+        options.each do |key, value|
+          self[key] = value
+        end
+      end
+    end
+
     def []=(key, value)
       @options[key] = value
     end

@@ -155,7 +155,7 @@ module MarkLogic
     end
 
     def has_sort?
-      @options.has_key?(:sort) or @options.has_key?(:order)
+      @options.has_key?(:sort) || @options.has_key?(:order)
     end
 
     def query
@@ -170,7 +170,7 @@ module MarkLogic
 
       sorters.map do |sorter|
         name = sorter[0].to_s
-        direction = (sorter[1] and (sorter[1] == -1)) ? "descending" : "ascending"
+        direction = (sorter[1] && (sorter[1] == -1)) ? "descending" : "ascending"
 
 
         if @collection.database.has_range_index?(name)
@@ -197,7 +197,7 @@ module MarkLogic
 
       sorters.map do |sorter|
         name = sorter[0].to_s
-        direction = (sorter[1] and (sorter[1] == -1)) ? "descending" : "ascending"
+        direction = (sorter[1] && (sorter[1] == -1)) ? "descending" : "ascending"
 
         unless @collection.database.has_range_index?(name)
           raise MissingIndexError.new("Missing index on #{name}")

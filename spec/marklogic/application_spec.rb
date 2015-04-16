@@ -102,4 +102,18 @@ describe MarkLogic::Application do
       expect(@a).to be_stale
     end
   end
+
+  describe "load" do
+    it "should load from existing config" do
+      app = MarkLogic::Application.load('App-Services', connection: CONNECTION)
+      expect(app.port).to eq(8000)
+      expect(app.app_servers.count).to eq(1)
+      expect(app.app_servers['App-Services'].server_name).to eq('App-Services')
+      expect(app.content_databases.count).to eq(1)
+      expect(app.content_databases.first.database_name).to eq('Documents')
+      expect(app.content_databases.first['forest']).to eq(['Documents'])
+      expect(app.modules_databases.count).to eq(1)
+      expect(app.modules_databases.first.database_name).to eq('Modules')
+    end
+  end
 end

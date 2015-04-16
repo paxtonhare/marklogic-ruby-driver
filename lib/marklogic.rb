@@ -1,3 +1,4 @@
+require 'oj'
 require 'active_support'
 require 'active_support/core_ext/object'
 require 'active_support/core_ext/string/inflections'
@@ -6,6 +7,7 @@ require "marklogic/consts"
 require 'marklogic/queries'
 require 'marklogic/exceptions'
 require 'marklogic/object_id'
+require 'marklogic/multipart_parser'
 
 module MarkLogic
   autoload :Application, 'marklogic/application'

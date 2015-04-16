@@ -26,6 +26,31 @@ module MarkLogic
       }
     end
 
+    def self.load(server_name, group_name = "Default")
+      app_server = AppServer.new(server_name, 0, 'http', group_name)
+      app_server.load
+      app_server
+    end
+
+    def load
+      resp = manage_connection.get(%Q{/manage/v2/servers/#{server_name}/properties?group-id=#{group_name}&format=json})
+      if resp.code.to_i == 200
+        options = Oj.load(resp.body)
+        options.each do |key, value|
+          self[key] = value
+        end
+      end
+    end
+
+    def inspect
+      as_nice_string = [
+        "server_name: #{server_name}",
+        "server_type: #{server_type}",
+        "port: #{self['port']}"
+      ].join(",")
+      "#<#{self.class}#{as_nice_string}>"
+    end
+
     def []=(key, value)
       @options[key] = value
     end

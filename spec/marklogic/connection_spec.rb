@@ -104,6 +104,14 @@ describe MarkLogic::Connection do
     it "should split properly when a crazy object is returned" do
       expect(@b.run_query(%Q{x = { stuff: [1, 2, 3], junk: false}; x}).body).to eq({"stuff" => [1, 2, 3], "junk" => false})
     end
+
+    it "should handle url unencoded stuff" do
+      expect(@b.run_query(%Q{
+        let $x := "Hi &amp; stuff"
+        return
+          $x
+      }, 'xquery').body).to eq("Hi & stuff")
+    end
   end
 
   describe "#digest" do

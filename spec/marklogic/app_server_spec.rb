@@ -18,4 +18,14 @@ describe MarkLogic::AppServer do
     end
 
   end
+
+  describe "load" do
+    it "should load an existing config from the server" do
+      app = MarkLogic::AppServer.load('App-Services')
+      expect(app['server-name']).to eq('App-Services')
+      expect(app['content-database']).to eq('Documents')
+      expect(app['modules-database']).to eq('Modules')
+      expect(app['port']).to eq(8000)
+    end
+  end
 end

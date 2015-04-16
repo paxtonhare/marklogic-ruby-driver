@@ -31,6 +31,29 @@ module MarkLogic
       reset_indexes
     end
 
+    def self.load(database_name, conn = nil)
+      db = Database.new(database_name, conn)
+      db.load
+      db
+    end
+
+    def load
+      resp = manage_connection.get(%Q{/manage/v2/databases/#{database_name}/properties?format=json})
+      if resp.code.to_i == 200
+        options = Oj.load(resp.body)
+        options.each do |key, value|
+          self[key] = value
+        end
+      end
+    end
+
+    def inspect
+      as_nice_string = @options.collect do |key, value|
+        " #{key}: #{value.inspect}"
+      end.sort.join(",")
+      "#<#{self.class}#{as_nice_string}>"
+    end
+
     def []=(key, value)
       @options[key] = value
     end
@@ -121,7 +144,7 @@ module MarkLogic
       response = manage_connection.get(%Q{/manage/v2/databases/#{database_name}/properties?format=json})
       raise Exception.new("Invalid response: #{response.code.to_i}: #{response.body}") if (response.code.to_i != 200)
 
-      props = JSON.parse(response.body)
+      props = Oj.load(response.body)
 
       INDEX_KEYS.each do |key|
         if props[key]
@@ -131,7 +154,7 @@ module MarkLogic
             logger.debug "#{database_name}: #{local} != #{remote}"
             return true
           end
-        elsif @options.has_key?(key) and @options[key] != []
+        elsif @options.has_key?(key) && @options[key] != []
           logger.debug "#{database_name}: #{key} is not on the remote end"
           return true
         end
@@ -199,7 +222,7 @@ module MarkLogic
     end
 
     def collections()
-      return connection.run_query('cts:collections()', "xquery").body || []
+      connection.run_query('cts:collections()', "xquery").body || []
     end
   end
 end

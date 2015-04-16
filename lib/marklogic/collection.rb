@@ -21,7 +21,7 @@ module MarkLogic
       url = "/v1/documents?uri=#{gen_uri(id)}&format=json"
       response = @database.connection.get(url)
       raise Exception.new("Invalid response: #{response.code.to_i}, #{response.body}") unless response.code.to_i == 200
-      JSON.parse(response.body)
+      Oj.load(response.body)
     end
 
     def save(doc)
@@ -215,6 +215,18 @@ module MarkLogic
       elsif queries.length == 1
         queries[0]
       end
+    end
+
+    def to_s
+      %Q{collection: #{collection}}
+    end
+
+    def inspect
+      as_nice_string = [
+        " collection: #{collection.inspect}",
+        " database: #{database.database_name.inspect}"
+      ].join(",")
+      "#<#{self.class}#{as_nice_string}>"
     end
 
     private
