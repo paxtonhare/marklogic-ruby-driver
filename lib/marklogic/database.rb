@@ -222,7 +222,12 @@ module MarkLogic
     end
 
     def collections()
-      connection.run_query('cts:collections()', "xquery").body || []
+      res = connection.run_query('cts:collections()', "xquery")
+      if res.code.to_i == 200
+        return res.body || []
+      else
+        raise MissingCollectionLexiconError.new if res.body =~ /XDMP-COLLXCNNOTFOUND/
+      end
     end
   end
 end
