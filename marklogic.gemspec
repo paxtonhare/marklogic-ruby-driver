@@ -5,7 +5,7 @@ require 'marklogic/version'
 
 Gem::Specification.new do |spec|
   spec.name          = 'marklogic'
-  spec.version       = MarkLogic::VERSION
+  spec.version       = MarkLogic::Version
   spec.authors       = ['Paxton Hare']
   spec.email         = ['paxton@greenllama.com']
   spec.summary       = %q{A Ruby Driver for MarkLogic}
