@@ -13,6 +13,10 @@ module MarkLogic
       @id
     end
 
+    def inspect
+      "#<#{self.class}('#{@id}')>"
+    end
+
     class << self
       def from_string(str)
         object_id = allocate

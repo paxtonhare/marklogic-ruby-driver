@@ -22,7 +22,8 @@ module MarkLogic
         "modules-database" => modules_database,
         "url-rewriter" => "/MarkLogic/rest-api/rewriter.xml",
         "error-handler" => "/MarkLogic/rest-api/error-handler.xqy",
-        "rewrite-resolves-globally" => true
+        "rewrite-resolves-globally" => true,
+        "group-name" => @group_name
       }
     end
 
@@ -67,6 +68,26 @@ module MarkLogic
       r = manage_connection.post_json(
         %Q{/manage/v2/servers/?group-id=#{group_name}&server-type=#{server_type}&format=json},
         @options)
+    end
+
+    def update
+      url = %Q{/manage/v2/servers/#{server_name}/properties?format=json}
+      r = manage_connection.put(url, JSON.generate(to_json))
+      binding.pry
+      r
+    end
+
+    def to_json
+      json = {}
+      @options.each do |k, v|
+        if v.kind_of?(Array)
+          value = v.map { |item| item.to_json }
+        else
+          value = v
+        end
+        json[k] = value
+      end
+      json
     end
 
     def drop

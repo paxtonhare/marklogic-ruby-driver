@@ -29,7 +29,11 @@ module MarkLogic
       end
 
       app_servers.each do |server_name, app_server|
-        app_server.create unless app_server.exists?
+        unless app_server.exists?
+          app_server.create
+        else
+          app_server.update
+        end
       end
 
     end
@@ -165,15 +169,15 @@ module MarkLogic
 
     def database(name)
       database = MarkLogic::Database.new(name, self.connection)
-      yield(database) if block_given?
       database.application = self
       databases[name] = database
+      yield(database) if block_given?
     end
 
     def app_server(name)
       app_server = MarkLogic::AppServer.new(name, @port)
-      yield(app_server) if block_given?
       app_servers[name] = app_server
+      yield(app_server) if block_given?
     end
 
     def inspect

@@ -177,7 +177,6 @@ module MarkLogic
         end
         json[k] = value
       end
-      # puts json
       json
     end
 
