@@ -72,9 +72,7 @@ module MarkLogic
 
     def update
       url = %Q{/manage/v2/servers/#{server_name}/properties?format=json}
-      r = manage_connection.put(url, JSON.generate(to_json))
-      binding.pry
-      r
+      manage_connection.put(url, JSON.generate(to_json))
     end
 
     def to_json
