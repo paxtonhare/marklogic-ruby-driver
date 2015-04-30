@@ -28,7 +28,7 @@ module MarkLogic
       if (doc.is_a?(Array))
         docs = {}
         doc.each do |d|
-          docs[doc_uri(d)] = JSON.generate(d)
+          docs[doc_uri(d)] = ::Oj.dump(d, mode: :compat)
         end
         body = build_multipart_body(docs)
         response = @database.connection.post_multipart("/v1/documents", body)
@@ -36,7 +36,7 @@ module MarkLogic
       else
         uri = doc_uri(doc)
         url = "/v1/documents?uri=#{uri}&format=json&collection=#{collection}"
-        json = JSON.generate(doc)
+        json = ::Oj.dump(doc, mode: :compat)
         response = @database.connection.put(url, json)
         raise Exception.new("Invalid response: #{response.code.to_i}, #{response.body}\n") unless [201, 204].include? response.code.to_i
         doc[:_id] || doc[:id] || doc['_id'] || doc['id']
@@ -253,7 +253,7 @@ module MarkLogic
       tmp = ""
 
       # collection
-      metadata = JSON.generate({ collections: [ collection ]})
+      metadata = ::Oj.dump({ collections: [ collection ]}, mode: :compat)
       tmp << %Q{--#{boundary}\r\n}
       tmp << %Q{Content-Type: application/json\r\n}
       tmp << %Q{Content-Disposition: inline; category=metadata\r\n}

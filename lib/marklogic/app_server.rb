@@ -72,7 +72,7 @@ module MarkLogic
 
     def update
       url = %Q{/manage/v2/servers/#{server_name}/properties?format=json}
-      manage_connection.put(url, JSON.generate(to_json))
+      manage_connection.put(url, ::Oj.dump(to_json, mode: :compat))
     end
 
     def to_json

@@ -182,7 +182,7 @@ module MarkLogic
 
     def update
       url = %Q{/manage/v2/databases/#{database_name}/properties?format=json}
-      r = manage_connection.put(url, JSON.generate(to_json))
+      r = manage_connection.put(url, ::Oj.dump(to_json, mode: :compat))
     end
 
     def reset_indexes

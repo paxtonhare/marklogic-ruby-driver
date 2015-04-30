@@ -126,6 +126,8 @@ module MarkLogic
       @host
     end
 
+    attr_accessor :verbose
+
     def initialize(host, port, username = nil, password = nil, options = {})
       @host = host
       @port = port
@@ -133,6 +135,7 @@ module MarkLogic
       @password = password || self.class.default_password
       @request_retries = options[:request_retries] || 3
       @http = Net::HTTP::Persistent.new 'marklogic'
+      @verbose = options[:verbose] == true || false
     end
 
     def run_query(query, type = "javascript", options = {})
@@ -143,6 +146,8 @@ module MarkLogic
       headers = {
         'content-type' => 'application/x-www-form-urlencoded'
       }
+
+      logger.debug(%Q{MarkLogic (#{type}):  #{query}})
       response = request('/eval', 'post', headers, params)
 
         # :xquery => options[:query],
@@ -168,7 +173,7 @@ module MarkLogic
     end
 
     def post_json(url, params = nil, headers = {})
-      request(url, 'post', headers, ::JSON.generate(params))
+      request(url, 'post', headers, ::Oj.dump(params, mode: :compat))
     end
 
     def post_multipart(url, body = nil, headers = {}, boundary = "BOUNDARY")
@@ -319,7 +324,9 @@ module MarkLogic
         response = @http.request full_url, request
       end
 
-      # puts("#{response.code} : #{verb.upcase} => ://#{@host}:#{@port}#{url} :: #{body} #{params}")
+      if @verbose
+        logger.debug("MarkLogic:  #{response.code} : #{verb.upcase} => ://#{@host}:#{@port}#{url} :: #{body} #{params}")
+      end
 
       split_multipart(response)
       response

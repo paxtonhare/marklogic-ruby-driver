@@ -42,6 +42,16 @@ describe MarkLogic::Collection do
       @collection.save( {:_id => "123", :name => "John", :age => 33, :stuff => "junk"} )
       expect(@collection.count).to eq 1
     end
+
+    it "save with a Time object" do
+      expect(@collection.count).to eq 0
+      current_time = Time.now
+      @collection.save( {:_id => "123", :name => "John", :age => 33, created_at: current_time} )
+
+      tdoc = @collection.load('123')
+      expect(tdoc).to eq({"_id" => "123", "name" => "John", "age" => 33, "created_at" => current_time.as_json })
+      expect(@collection.count).to eq 1
+    end
   end
 
   describe "#save multiples" do
