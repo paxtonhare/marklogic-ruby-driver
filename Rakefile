@@ -20,6 +20,7 @@ end
 desc 'Tags version, pushes to remote, and pushes gem'
 task :release => :build do
   sh "git tag v#{MarkLogic::Version}"
-  sh "git push origin master"
+  sh "git push origin"
+  sh "git push --tags origin"
   sh "gem push marklogic-#{MarkLogic::Version}.gem"
 end

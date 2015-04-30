@@ -180,6 +180,11 @@ module MarkLogic
       yield(app_server) if block_given?
     end
 
+    def config
+      yield(self) if block_given?
+      build_implicit_defs
+    end
+
     def inspect
       as_nice_string = [
         " app_name: #{app_name.inspect}",

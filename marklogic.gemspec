@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.email         = ['paxton@greenllama.com']
   spec.summary       = %q{A Ruby Driver for MarkLogic}
   spec.description   = %q{A Ruby Driver for MarkLogic}
-  spec.homepage      = ''
+  spec.homepage      = 'https://github.com/paxtonhare/marklogic-ruby-driver'
   spec.license       = 'MIT'
 
   spec.files         = `git ls-files -z`.split("\x0")
